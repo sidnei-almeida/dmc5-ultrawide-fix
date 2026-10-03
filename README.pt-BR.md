@@ -145,22 +145,40 @@ ReShade, combine: `WINEDLLOVERRIDES="dinput8,dxgi=n,b" %command%`.
   *Ultrawide/FOV/Aspect Ratio Fix* está marcado.
 - A tela de título preenche o monitor: zero colunas pretas nas bordas esquerda e direita.
 
+## Status
+
+Funcionando e verificado em 3440x1440: sem pillarbox em lugar nenhum, fades de cutscene cobrindo a
+tela inteira, menus 2D (pausa, loja, opções, resultados) no tamanho de 16:9 e centralizados.
+
+Em aberto: a HUD de combate do DMC5 (vida/EX/DT, Devil Breakers) não é GUI 2D. São objetos
+`via.gui.GUIMesh` estacionados em 3D na frente de uma câmera, sob uma raiz por personagem
+(`pl0000Hud` para o Nero). O script escala esses grupos de mesh por `(k, k, 1)` antes de cada
+render, o que deve trazê-los de volta ao tamanho e posição de 16:9, mas esse último passo não foi
+confirmado em combate antes de o projeto ser pausado. Ajuste no jogo em *DMC5 Ultrawide HUD → 3D HUD*
+(scale override, fatores x/y) e, por favor, reporte o que funciona.
+
 ## Como funciona
 
-Três peças, todas em tempo de execução, nada gravado no executável:
+Quatro peças, todas em tempo de execução, nada gravado no executável:
 
 1. **O Ultrawide fix do REFramework** (`Graphics_UltrawideFix=true`) define o `DisplayType` da
    scene view para o aspecto real do monitor (`Uniform21x9`, `Uniform32x9`, ...) em vez do pillarbox
    16:9, e com `UltrawideFixVerticalFOV_V2=true` mantém o FOV vertical igual ao de 16:9 e abre só o
    horizontal, então nada é cortado.
 
-2. **`dmc5_uw_hud.lua`** engancha em `re.on_pre_gui_draw_element` e, para cada `via.gui.View` que
-   não seja um overlay de tela cheia, força `ResolutionAdjust = true`, `ResAdjustScale = FitSmallRatioAxis`
-   e `ResAdjustAnchor = CenterCenter`. O DMC5 desenha HUD e menus com views do tipo **World**, que a
-   opção *Constrain UI* do próprio REFramework pula de propósito (ela só mexe em views *Screen*); por
-   isso a opção de fábrica deixa a barra de vida fora da tela.
+2. **`dmc5_uw_hud.lua`, menus 2D.** O DMC5 desenha os menus com `via.gui.View` do tipo **World**,
+   cujo canvas 1920x1080 é escalado pela razão de largura (1,79x em 21:9) e centralizado na vertical,
+   então eles transbordam a tela. Resolution-adjust não faz nada em views World, por isso o script
+   define a escala da view como `(16/9) / aspecto` (0,744 em 3440x1440) e desloca o canvas por metade
+   da sobra de largura e altura, em unidades de canvas (245,6 e 138 em 3440x1440). Os números saíram
+   da geometria e batem com os valores ajustados na mão pelos scripts antigos da comunidade (0,742 / 250 / 138).
 
-3. **Fades e overlays de cutscene ficam intactos.** `Fade_InGame`, `Fade_Menu`, `Fade_Loading`,
+3. **`dmc5_uw_hud.lua`, HUD 3D.** Os meshes da HUD de combate ficam sob `pl0000Hud` (Nero) em grupos
+   como `HP_EX_DT_GUImesh` e `ArtificialArmChange_GUImesh`. Antes de cada frame o script define a
+   escala local desses grupos como `(k, k, 1)`, o que encolhe os meshes e os puxa para o centro sem
+   mudar a profundidade. Veja [Status](#status).
+
+4. **Fades e overlays de cutscene ficam intactos.** `Fade_InGame`, `Fade_Menu`, `Fade_Loading`,
    `ClipPlayGUI` e companhia são quads 1920x1080 com `ResolutionAdjust = false` e escala `Stretch`.
    Forçar um modo "fit" neles (o que o *Constrain UI* faz) estaciona o quad sobre a metade de cima da
    tela, e isso aparece como um retângulo escuro em toda transição de cutscene. Por isso a config
@@ -175,7 +193,7 @@ menu do script para ver os mesmos dados no `re2_framework_log.txt`.
 Aperte **Insert** no jogo.
 
 - **Graphics → Ultrawide/FOV Options**: multiplicador de FOV, modo de FOV vertical, modo letterbox 16:10.
-- **DMC5 Ultrawide HUD**: liga/desliga a reancoragem da HUD, ativa o log de elementos.
+- **DMC5 Ultrawide HUD**: escala/centralização dos menus, escala e fatores x/y da HUD 3D, log de elementos.
 - **UI Scale**: o [UI Scaler do plneappl](https://github.com/plneappl/dmc5_ui_scaler), que vem
   desligado. Desmarque *disable* se preferir posicionar os elementos da HUD na mão (escala x/y e
   offsets, com valores separados para telas de loading). As configurações ficam em `reframework/data/uiscale.json`.
@@ -189,7 +207,8 @@ Aperte **Insert** no jogo.
 | SO | Arch Linux (Omarchy), Hyprland |
 | Proton | GE-Proton 11-7 |
 | REFramework | nightly `d1461375` (ver `payload/reframework_revision.txt`) |
-| Conferido | título, menu principal, pausa/opções, cutscenes, fades, gameplay de missão |
+| Conferido | título, menu principal, pausa/loja/opções (escalados e centralizados), cutscenes, fades |
+| Em aberto | HUD 3D de combate (vida, Devil Breakers): reescala implementada, não confirmada em combate |
 
 32:9 e 3840x1600 passam pelos mesmos caminhos de código no REFramework (`Uniform32x9`,
 `Uniform21x9`), mas não foram testados aqui. Por favor [reporte](#reporte-seus-resultados).

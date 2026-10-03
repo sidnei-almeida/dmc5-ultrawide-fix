@@ -145,22 +145,40 @@ combine them: `WINEDLLOVERRIDES="dinput8,dxgi=n,b" %command%`.
   *Ultrawide/FOV/Aspect Ratio Fix* is ticked.
 - The title screen fills the monitor: zero pure-black columns at the left and right edges.
 
+## Status
+
+Working and verified at 3440x1440: no pillarbox anywhere, cutscene fades cover the whole screen,
+2D menus (pause, shop, options, results) are shrunk to their 16:9 size and centred.
+
+Still open: DMC5's combat HUD (health/EX/DT gauge, Devil Breakers) is not a 2D GUI at all. It is a
+set of `via.gui.GUIMesh` objects parked in 3D in front of a camera under a per-character root
+(`pl0000Hud` for Nero). The script scales those mesh groups by `(k, k, 1)` before every render, which
+should bring them back to 16:9 size and position, but this last step was not confirmed in combat
+before the project was parked. Tune it in game under *DMC5 Ultrawide HUD → 3D HUD* (scale override,
+x/y factors) and please report what works.
+
 ## How it works
 
-Three pieces, all applied at runtime, nothing written to the executable:
+Four pieces, all applied at runtime, nothing written to the executable:
 
 1. **REFramework's Ultrawide fix** (`Graphics_UltrawideFix=true`) sets the scene view's
    `DisplayType` to the monitor's real aspect (`Uniform21x9`, `Uniform32x9`, …) instead of the
    16:9 pillarbox, and with `UltrawideFixVerticalFOV_V2=true` it keeps the vertical FOV identical to
    16:9 and widens only the horizontal one, so nothing gets cropped.
 
-2. **`dmc5_uw_hud.lua`** hooks `re.on_pre_gui_draw_element` and, for every `via.gui.View` that is
-   not a full-screen overlay, forces `ResolutionAdjust = true`, `ResAdjustScale = FitSmallRatioAxis`
-   and `ResAdjustAnchor = CenterCenter`. DMC5 draws its HUD and menus with **World**-type views that
-   REFramework's own *Constrain UI* option deliberately skips (it only touches *Screen* views), which
-   is why the stock option leaves the health bar off-screen.
+2. **`dmc5_uw_hud.lua`, 2D menus.** DMC5 draws menus with **World**-type `via.gui.View`s whose
+   1920x1080 canvas is scaled by the width ratio (1.79x on 21:9) and centred vertically, so they
+   overflow the screen. Resolution-adjust settings do nothing on World views, so the script sets the
+   view scale to `(16/9) / aspect` (0.744 at 3440x1440) and offsets the canvas by half the leftover
+   width and height in canvas units (245.6, 138 at 3440x1440). Those numbers were derived from the
+   geometry and match the hand-tuned values of the older community scripts (0.742 / 250 / 138).
 
-3. **Fades and cutscene overlays are left untouched.** `Fade_InGame`, `Fade_Menu`, `Fade_Loading`,
+3. **`dmc5_uw_hud.lua`, 3D HUD.** The combat HUD meshes live under `pl0000Hud` (Nero) in groups
+   such as `HP_EX_DT_GUImesh` and `ArtificialArmChange_GUImesh`. Before each frame the script sets
+   those groups' local scale to `(k, k, 1)`, which shrinks the meshes and pulls them towards the
+   centre without changing their depth. See [Status](#status).
+
+4. **Fades and cutscene overlays are left untouched.** `Fade_InGame`, `Fade_Menu`, `Fade_Loading`,
    `ClipPlayGUI` and friends are 1920x1080 quads with `ResolutionAdjust = false` and `Stretch`
    scaling. Forcing a fit mode on them (what *Constrain UI* does) parks the quad over the top half of
    the screen, which shows up as a dark rectangle during every cutscene transition. The shipped
@@ -175,7 +193,7 @@ Everything the script does was derived from logging each GUI element's original 
 Press **Insert** in game.
 
 - **Graphics → Ultrawide/FOV Options**: FOV multiplier, vertical-FOV mode, 16:10 letterbox mode.
-- **DMC5 Ultrawide HUD**: toggle the HUD re-anchoring, enable element logging.
+- **DMC5 Ultrawide HUD**: menu scale/centering, 3D HUD scale and x/y factors, element logging.
 - **UI Scale**: [plneappl's UI Scaler](https://github.com/plneappl/dmc5_ui_scaler), shipped
   disabled. Untick *disable* if you prefer to place HUD elements by hand (x/y scale and offsets, with
   separate values for loading screens). Settings persist in `reframework/data/uiscale.json`.
@@ -189,7 +207,8 @@ Press **Insert** in game.
 | OS | Arch Linux (Omarchy), Hyprland |
 | Proton | GE-Proton 11-7 |
 | REFramework | nightly `d1461375` (see `payload/reframework_revision.txt`) |
-| Checked | title, main menu, pause/options, cutscenes, fades, mission gameplay |
+| Checked | title, main menu, pause/shop/options (scaled and centred), cutscenes, fades |
+| Open | in-game 3D HUD (health gauge, Devil Breakers): rescaling implemented, not yet confirmed in combat |
 
 32:9 and 3840x1600 are handled by the same code paths in REFramework (`Uniform32x9`,
 `Uniform21x9`) but were not tested here. Please [report](#report-your-results).

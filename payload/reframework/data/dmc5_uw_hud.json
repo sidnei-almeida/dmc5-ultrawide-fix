@@ -1,1 +1,1 @@
-{ "enabled": true, "debug_log": false }
+{ "enabled": true, "debug_log": false, "scale_override": 0, "x_offset": 0, "y_offset": 0, "center": true, "hud3d_enabled": true, "hud3d_scale_override": 0, "hud3d_x_factor": 1.0, "hud3d_y_factor": 1.0 }

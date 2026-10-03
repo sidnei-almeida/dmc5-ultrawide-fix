@@ -1,8 +1,8 @@
 Graphics_UltrawideFix=true
 Graphics_UltrawideFixVerticalFOV_V2=true
 Graphics_UltrawideCustomFOV=false
-Graphics_UltrawideConstrainUI=true
-Graphics_UltrawideConstrainChildUI=true
+Graphics_UltrawideConstrainUI=false
+Graphics_UltrawideConstrainChildUI=false
 Graphics_Ultrawide16x10Mode=false
 REFrameworkConfig_MenuOpen=false
 REFrameworkConfig_RememberMenuState=true

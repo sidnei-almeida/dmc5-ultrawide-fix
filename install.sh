@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Devil May Cry 5 — Ultrawide fix (21:9 / 32:9) installer
+# Devil May Cry 5 Ultrawide fix (21:9 / 32:9) installer
 # Drops REFramework + a ready-made config + a HUD script next to DevilMayCry5.exe
 # and (on Steam/Linux) sets the launch option that lets Proton load it.
 # https://github.com/sidnei-almeida/dmc5-ultrawide-fix

@@ -1,0 +1,15 @@
+{
+  "disable": true,
+  "x_scale": 1.0,
+  "y_scale": 1.0,
+  "x_offset": 0,
+  "y_offset": 0,
+  "v111Settings": {
+    "x_scale_cutscenes": 1.0,
+    "y_scale_cutscenes": 1.0,
+    "x_offset_cutscenes": 0,
+    "y_offset_cutscenes": 0,
+    "filter_method": "allowlist",
+    "developer": false
+  }
+}
